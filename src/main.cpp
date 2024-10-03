@@ -109,7 +109,7 @@ int main()
         if (IsKeyDown(KEY_S))
             paddle1Position.y += paddleDelta;
 
-        if (IsKeyDown(KEY_E))   // Player 2 controls. 
+        if (IsKeyDown(KEY_E))   // Second player controls, because its much more fun with TWO players. 
             paddle2Position.y -= paddleDelta;
         if (IsKeyDown(KEY_D))
             paddle2Position.y += paddleDelta;
@@ -128,17 +128,20 @@ int main()
         Box paddle2Box = PaddleBox(paddle2Position);
 
         if (ballBox.xMin < 0.0f || ballBox.xMax > SCREEN_WIDTH)
-            //ballDirection.x *= -1.0f;                 // Commented out so ball reset function can work without issue.  
+            // ballDirection.x *= -1.0f;                // Commented out so ball reset function can work without issue. 
+
             ResetBall(ballPosition, ballDirection);     // Calls the ball reset function using local Vectors.
-            //// [Set Points based on side hit or last direction]
-            //// [Create text for total points for both players]
+
             //// [Pause game for a brief moment]
+            //// [Play SFX]
+            //// [Set Points based on side hit or last direction]
+            
+            //// [Create text, total points for both players]
 
         if (ballBox.yMin < 0.0f || ballBox.yMax > SCREEN_HEIGHT)
             ballDirection.y *= -1.0f;
         if (BoxOverlap(ballBox, paddle1Box) || BoxOverlap(ballBox, paddle2Box))
             ballDirection.x *= -1.0f;
-            //// [Play SFX]
 
         // Update ball position after collision resolution, then render
         ballPosition = ballPosition + ballDirection * ballDelta;
