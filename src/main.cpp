@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "Math.h"
+#include <thread>   // Included after looking for a way to hold .
 
 constexpr float SCREEN_WIDTH = 1200.0f;
 constexpr float SCREEN_HEIGHT = 800.0f;
@@ -13,8 +14,6 @@ constexpr float BALL_SIZE = 40.0f;
 constexpr float PADDLE_SPEED = SCREEN_HEIGHT * 0.5f;
 constexpr float PADDLE_WIDTH = 40.0f;
 constexpr float PADDLE_HEIGHT = 80.0f;
-
-constexpr int victoryPoints = 5; // Constant expression for total points needed to win.
 
 struct Box
 {
@@ -67,8 +66,8 @@ void ResetBall(Vector2& position, Vector2& direction)
     direction.x = rand() % 2 == 0 ? -1.0f : 1.0f;
     direction.y = 0.0f;
     direction = Rotate(direction, Random(0.0f, 60.0f) * DEG2RAD);   // Changed float 360 to 60; dont need another direction flip.
-}                                                                   // fixes stuck-in-center bug; ball has no X-axis movement.   
-                                                                    // Also keeps the speed of the ball high. 
+}                                                                   // fixes stuck-in-center bug; ball has no X-axis movement.
+
 void DrawBall(Vector2 position, Color color)
 {
     Box ballBox = BallBox(position);
@@ -83,9 +82,6 @@ void DrawPaddle(Vector2 position, Color color)
 
 int main()
 {
-    int player1Points = 0;  // Local variable for player 1 points.
-    int player2Points = 0;  // Local variable for player 2 points.
-
     Vector2 ballPosition;
     Vector2 ballDirection;
     ResetBall(ballPosition, ballDirection);
@@ -94,6 +90,9 @@ int main()
     paddle1Position.x = SCREEN_WIDTH * 0.05f;
     paddle2Position.x = SCREEN_WIDTH * 0.95f;
     paddle1Position.y = paddle2Position.y = CENTER.y;
+
+    static int player1Points = 0;  // Local variable for player 1 points.
+    static int player2Points = 0;  // Local variable for player 2 points.
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Pong");
     SetTargetFPS(60);
@@ -108,8 +107,7 @@ int main()
             paddle1Position.y -= paddleDelta;
         if (IsKeyDown(KEY_S))
             paddle1Position.y += paddleDelta;
-
-        if (IsKeyDown(KEY_E))   // Second player controls, because its much more fun with TWO players. 
+        if (IsKeyDown(KEY_E))                   // Second player controls, because its much more fun with TWO players. 
             paddle2Position.y -= paddleDelta;
         if (IsKeyDown(KEY_D))
             paddle2Position.y += paddleDelta;
@@ -128,15 +126,32 @@ int main()
         Box paddle2Box = PaddleBox(paddle2Position);
 
         if (ballBox.xMin < 0.0f || ballBox.xMax > SCREEN_WIDTH)
-            // ballDirection.x *= -1.0f;                // Commented out so ball reset function can work without issue. 
+            // ballDirection.x *= -1.0f;            // Commented out so ball reset function can work without issue. 
+            ResetBall(ballPosition, ballDirection); // Calls the ball reset function using local Vectors.
 
-            ResetBall(ballPosition, ballDirection);     // Calls the ball reset function using local Vectors.
+        if (ResetBall && ballBox.xMax > SCREEN_WIDTH)   // If ball is on the right when ball resets...
+            player1Points += 1,                         // 1 point to player 1.
+            paddle1Position.y = CENTER.y,               // Paddle 1 resets position.
+            paddle2Position.y = CENTER.y;               // Paddle 2 resets position.
+        if (ResetBall && ballBox.xMin < 0.0f)           // If ball is on the left when ball resets...
+            player2Points += 1,                         // 1 point to player 2.
+            paddle1Position.y = CENTER.y,               // Paddle 1 resets position.
+            paddle2Position.y = CENTER.y;               // Paddle 2 resets position.
 
-            //// [Pause game for a brief moment]
-            //// [Play SFX]
-            //// [Set Points based on side hit or last direction]
-            
-            //// [Create text, total points for both players]
+        if (player1Points == 5)
+            DrawText("Player One Wins!", 250, 250, 100, LIME),
+            player1Points = 0,
+            player2Points = 0,
+            EndDrawing(),
+            std::this_thread::sleep_for(std::chrono::seconds(3)),
+            exit(0);
+        if (player2Points == 5)
+            DrawText("Player Two Wins!", 250, 250, 100, LIME),
+            player1Points = 0,
+            player2Points = 0,
+            EndDrawing(),
+            std::this_thread::sleep_for(std::chrono::seconds(3)),
+            exit(0);
 
         if (ballBox.yMin < 0.0f || ballBox.yMax > SCREEN_HEIGHT)
             ballDirection.y *= -1.0f;
@@ -148,6 +163,8 @@ int main()
 
         BeginDrawing();
         ClearBackground(BLACK);
+        DrawText(TextFormat("Player One: %i", player1Points), 20, 10, 20, GRAY);
+        DrawText(TextFormat("Player Two: %i", player2Points), 1050, 10, 20, GRAY);
         DrawBall(ballPosition, WHITE);
         DrawPaddle(paddle1Position, WHITE);
         DrawPaddle(paddle2Position, WHITE);
